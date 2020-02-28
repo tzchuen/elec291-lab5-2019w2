@@ -10,7 +10,7 @@ board.
 - _(optional)_ Display frequency of reference signal in Hz 
 
 ## To-do
--[ ] Hardware
+- [ ] Hardware
   - [ ] Precision Peak Detector x 2
     - [ ] Op-amps: `LM324` has 4, `LM358` has 2
     - [ ] Signal diodes e.g. `1N4148`
