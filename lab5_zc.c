@@ -1,5 +1,4 @@
 /* My implementation
- * I added the LCD/PuTTY functions, other changes will be commented as needed.
  * I haven't added any PuTTY or LCD stuff yet, just an outline to see if it makes sense to you
  */
 #include <stdio.h>
