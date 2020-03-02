@@ -195,3 +195,103 @@ void main (void)
 	 }  
 }	
 
+/*
+	Idea:
+	We want to go from an Analog to Digital Converter value to a phasor. 
+	Ways we can do that:
+	
+		1) Through hardware, just like lab 3 and in project 1, want to turn the ADC value to a Voltage output value, we can refer to the slides about it 
+			aside: the voltage might already be given to us through the array in the while loop above, not sure tho
+		2) Just like in ELEC 211, we want to sample the the voltage at some sort of frequencty or periodic time so we can trace its fluctuation voltage 
+		3) WE can figure out teh amplitude and phase liek this:
+			- For Amplitude, we can sample the the voltage fluxuation and Max/Min math find out the highest and lowest value
+			- For phase, we can also use the anmplitude and find the distance from peake to peak of the fluctuation, math conversion to an angular frequency. 
+		4) should be gucci?
+
+*/
+
+/*
+	Example of sampling:
+
+	// some variables to be declared in main: 
+	int voltage_from_ADC;
+	int voltage_sampling[10000];
+	int voltage_sampling_size = 10000;
+	int sampling_pointer= 0;
+	
+
+
+	// some functions to be declared:
+	void timer0_setup()
+	{
+		TMOD = 0;		
+		EA = 1;		// enable global interrupts
+		ET0 = 1;	// enable timer 0 ?
+		TR0 = 1;		// enabable timer 0
+		TH0 = 1		// timer high = 1, so it will count to 1? fast timer 
+	}
+
+	void timer0() Interrupt 1
+	{
+		if(sampling_pointer <= 9999)
+			voltage_sampling[sampling_pointer] = voltage_from_ADC
+			sampling_pointer++;
+			TF0 = 0;					//  clears interrupt flag 
+			return;			
+		else
+			sampling_pointer = 0;
+			TF0 = 0;
+			TR0 = 0; 			// disable timer to finish sampling 
+	}
+
+	// once the timer tr0 is clear to disable timer 0, it is assumed that we have collected 1000 data points of the voltage
+
+*/
+
+/*
+	Example of parsing the sampled voltage data points and find the largest number and smallest number 
+
+	// some variables to be declared in main :
+	int largest_voltage_sampled = 0;
+	int smallest_voltage_sampled = 10000;
+
+
+	// some functions to be declared:
+	void largest_voltage_sample_finder(int sampling_array[], int size_array, int max_sample)
+	{
+		for(int i = 0; i < size_array; i++)
+		{
+			if (sampling_array[i] > largest_voltage_sampled)
+				max_sample = sampling_array[i];
+		}
+	}
+	// we would call:  smallest_voltage_sample_finder(voltage_sampling[], voltage_sampling_size, largest_voltage_sampled)
+
+
+	void smalled_voltage_sample_finder(int sampling_array[], voltage_sampling_size, int min_sample)
+	{
+		for(int i = 0; i < size_array; i++)
+		{
+			if(sampling_array[i] < smallest_voltage_sampled)
+				min_sample = sampling_array[i]
+		}
+	}
+	// we would call: smallest_voltage_sampling_finder(voltage_sampling[], voltage_sampling_size, smallest_voltage_sampled)
+
+	// after these function calls, it is assumed that we now have the largest and smallest value out of the sampled values 
+
+
+*/
+
+/*
+	example of amplitude calculation:
+		
+	int amplitude =  (max_sample - min_sample)/2 // the top - bottom /2 gives us te displacement from x-axis to the top of the wave 
+
+*/
+
+/*
+	example of parsing the data to figure out the 
+
+
+*/
