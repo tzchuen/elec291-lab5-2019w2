@@ -26,6 +26,7 @@
 #define PERIOD_IN_DEGRESS 360
 #define PI 3.14159265359
 #define PERIOD_IN_RADIANS 2*PI
+#define CHARS_PER_LINE 16
 
 #define TRUE 1
 #define FALSE 0
@@ -273,18 +274,27 @@ int getsn (char * buff, int len)
 // Function to measure time difference between zero-cross of 2 signals in micro-seconds
 int time_diff (double signal_1, double signal_2)
 {
-    int time_us;
+    int time_us = 0;
+    
+    int sig1_on = FALSE;
+    int sig2_on = FALSE;
+    
+    if (signal_1 != 0.0)
+    	sig1_on = TRUE;
+    	
+    if (signal_2 != 0.0)
+    	sig2_on = TRUE;
 
     // Wait for one of the zero-cross signals to go high
     // ONLY ONE of them should be high at a time
-    while ( (signal_1 != 0) ^ (signal_2 != 0) )
+    while ( (sig1_on) ^ (sig2_on) )
     {
         // do nothing
     }
 
     // Every microsecond the not yet triggered signal is 0,
     // increment time_us by 1
-    if (signal_1 != 0 && signal_2 == 0)
+    if (sig1_on && !sig2_on)
     {
         while (signal_2 == 0) {
             Timer3us(1);
@@ -293,7 +303,7 @@ int time_diff (double signal_1, double signal_2)
         return time_us;
     }
 
-    else if (signal_1 == 0 && signal_2 != 0)
+    else if (!sig1_on && sig2_on)
     {
         while (signal_1 == 0) 
         {
@@ -311,7 +321,6 @@ int time_diff (double signal_1, double signal_2)
 int find_period_zero_cross (double signal)
 {
     int zero_cross_time = 0;
-    int period_us;
 
     while (signal == 0)
     {
