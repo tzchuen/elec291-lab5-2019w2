@@ -27,6 +27,9 @@
 #define PI 3.14159265359
 #define PERIOD_IN_RADIANS 2*PI
 
+#define TRUE 1
+#define FALSE 0
+
 char _c51_external_startup (void)
 {
 	// Disable Watchdog with key sequence
@@ -336,23 +339,32 @@ void main (void)
 
     double period_ms;
     double frequency;
-    double phase_diff_deg:
-
+    double phase_diff_deg;
     double phase_diff_rad; 
 
+	int ref_isZero = FALSE;
+	int test_isZero = FALSE;
 
-    const double PI = 3.14159;
+	int isZero = 0;
 
+    // const double PI = 3.14159;
     char unit_choice[2];
+
+	char rms_char[17];
+	char phase_char[17];
 
 
     waitms(500); // Give PuTTy a chance to start before sending
 	printf("\x1b[2J"); // Clear screen using ANSI escape sequence.
 	
-	printf ("ADC test program\n"
-	        "File: %s\n"
+	printf ("Lab 5: AC Voltmeter\n"
+	        "Authors: Ryan Acapulco, Zhi Chuen Tan\n"
+			"Lab Section: L2B (M/W 12-3pm)\n"
+			"Term: 2019W2\n\n"
 	        "Compiled: %s, %s\n\n",
-	        __FILE__, __DATE__, __TIME__);
+	        __DATE__, __TIME__);
+	
+	LCD_4BIT();
 	
 	// P2.2-2.5 used for LCD, use these ones instead
     InitPinADC(1, 4); // Configure P1.4 as analog input
@@ -361,11 +373,12 @@ void main (void)
     InitPinADC(1, 7); // Configure P1.7 as analog input
     InitADC();
 
-    printf ("Select unit option:\n"
+    printf ("\rPlease select units for phase:\n"
             "1: Radians\n"
-            "2: Degrees\n");
+            "2: Degrees\n\n");
 
     getsn(unit_choice, sizeof(unit_choice));
+
 
 	while(1)
 	{
@@ -375,33 +388,96 @@ void main (void)
 		test_peak       = Volts_at_Pin(QFP32_MUX_P1_6);
 		test_zero_cross = Volts_at_Pin(QFP32_MUX_P1_7);
 
-        // explicit cast as double to avoid integer arithmetic
-        time_difference_ms = (double) (time_diff(ref_zero_cross, test_zero_cross)) / MILLI_TO_MICRO;
+		if(ref_peak == 0 || ref_zero_cross == 0)
+			ref_isZero = TRUE;
+		
+		if(test_peak == 0 || test_zero_cross == 0)
+			test_isZero = TRUE;
 
-        ref_rms  = ref_peak / SQRT_2;
-        test_rms = test_peak / SQRT_2;
+		
+		// 'concatnate' so it's 00/01/10/11
+		isZero = (ref_isZero * 10) + test_isZero;
 
-        period_ms = (double) (time_diff(ref_zero_cross, ref_zero_cross)) / MILLI_TO_MICRO;
+		switch(isZero) 
+		{
+			case 00: 
+				// explicit cast as double to avoid integer arithmetic
+				time_difference_ms = (double) (time_diff(ref_zero_cross, test_zero_cross)) / MILLI_TO_MICRO;
 
-        phase_diff_deg = time_difference_ms * (PERIOD_IN_DEGRESS/period_ms);
-        phase_diff_rad = phase_diff_deg*PI/180;
+				ref_rms  = ref_peak / SQRT_2;
+				test_rms = test_peak / SQRT_2;
 
-        frequency = 1 / (period_ms / BASE_TO_MILLI);
- 
-        switch(unit_choice[0])
-        {
-            case '1': 
-                printf("Phasor: %d;%d Radians", test_rms, phase_diff_rad);
-                break;
-            case '2':
-                printf("Phasor: %d;%d Degrees", test_rms, phase_diff_deg);
-                break;
-            default:
-                printf("\r DEFAULT CASE: ERROR :(\n");
-                break;
-        }
+				period_ms = (double) (time_diff(ref_zero_cross, ref_zero_cross)) / MILLI_TO_MICRO;
 
+				phase_diff_deg = time_difference_ms * (PERIOD_IN_DEGRESS/period_ms);
+				phase_diff_rad = phase_diff_deg*PI/180;
+
+				frequency = 1 / (period_ms / BASE_TO_MILLI);
+		
+				switch(unit_choice[0])
+				{
+					case '1': 
+						printf("\rV = %3f; %3f rad", test_rms, phase_diff_rad);
+						printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+							   // 1234567890123456
+						LCDprint("             rad", 2, 0);
+						                  // 1234567890123456
+										  // Vrms=xxx
+						sprintf(rms_char,   "     %3f", test_rms);
+										  // Phase=xxx
+						sprintf(phase_char, "      %3f", phase_diff_rad);
+						LCDprint(rms_char, 1, 0);
+						LCDprint(phase_char, 2, 0);
+						LCDprint("Vrms=", 1, 0);
+						LCDprint("Phase=", 2, 0);
+						break;
+					case '2':
+						printf("\rV = %3f; %3f deg", test_rms, phase_diff_deg);
+						printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+						       // 1234567890123456
+						LCDprint("             deg", 2, 0);
+						                  // 1234567890123456
+										  // Vrms=xxx
+						sprintf(rms_char,   "     %3f", test_rms);
+										  // Phase=xxx
+						sprintf(phase_char, "      %3f", phase_diff_deg);
+						LCDprint(rms_char, 1, 0);
+						LCDprint(phase_char, 2, 0);
+						LCDprint("Vrms=", 1, 0);
+						LCDprint("Phase=", 2, 0);
+						break;
+					default:
+						printf("\rDEFAULT CASE (unit_choice): ERROR :(\n");
+				}
+			break;
+
+			case 10:
+				        //1234567890123456
+				LCDprint("  CONNECT TEST  ", 1, 1);
+				LCDprint("     SIGNAL     ", 2, 1);
+				printf("\rPlease connect the test signal and reset\n\n");
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
+			
+			case 01:
+				        //1234567890123456
+				LCDprint("  CONNECT REF  ", 1, 1);
+				LCDprint("     SIGNAL    ", 2, 1);
+				printf("\rPlease connect the reference signal and reset\n\n");
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
+
+			case 11:
+			            //1234567890123456
+				LCDprint("   NO SIGNALS   ", 1, 1);
+				LCDprint("    DETECTED    ", 2, 1);
+				printf("\rPlease connect test and reference signals and reset\n\n");
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
+
+			default:
+				printf("DEFAULT CASE(signal detection): ERROR :(");
+		}
         waitms(500);
-        
 	 }  
 }	
