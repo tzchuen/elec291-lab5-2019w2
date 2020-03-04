@@ -338,6 +338,13 @@ void main (void)
     double frequency;
     double phase_diff_deg:
 
+    double phase_diff_rad; 
+
+
+    const double PI = 3.14159;
+
+    char unit_choice[2];
+
 
     waitms(500); // Give PuTTy a chance to start before sending
 	printf("\x1b[2J"); // Clear screen using ANSI escape sequence.
@@ -353,6 +360,12 @@ void main (void)
     InitPinADC(1, 6); // Configure P1.6 as analog input
     InitPinADC(1, 7); // Configure P1.7 as analog input
     InitADC();
+
+    printf ("Select unit option:\n"
+            "1: Radians\n"
+            "2: Degrees\n");
+
+    getsn(unit_choice, sizeof(unit_choice));
 
 	while(1)
 	{
@@ -371,8 +384,24 @@ void main (void)
         period_ms = (double) (time_diff(ref_zero_cross, ref_zero_cross)) / MILLI_TO_MICRO;
 
         phase_diff_deg = time_difference_ms * (PERIOD_IN_DEGRESS/period_ms);
+        phase_diff_rad = phase_diff_deg*PI/180;
 
         frequency = 1 / (period_ms / BASE_TO_MILLI);
-		waitms(500);
+ 
+        switch(unit_choice[0])
+        {
+            case '1': 
+                printf("Phasor: %d;%d Radians", test_rms, phase_diff_rad);
+                break;
+            case '2':
+                printf("Phasor: %d;%d Degrees", test_rms, phase_diff_deg);
+                break;
+            default:
+                printf("\r DEFAULT CASE: ERROR :(\n");
+                break;
+        }
+
+        waitms(500);
+        
 	 }  
 }	
