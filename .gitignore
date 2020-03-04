@@ -1,0 +1,6 @@
+*.asm
+*.lkr
+*.lst
+*.map
+*.obj
+*.bat
