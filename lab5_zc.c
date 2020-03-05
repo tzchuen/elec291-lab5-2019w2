@@ -1,3 +1,4 @@
+
 /* My implementation
  * I haven't added any PuTTY or LCD stuff yet, just an outline to see if it makes sense to you
  */
@@ -271,96 +272,100 @@ int getsn (char * buff, int len)
 	return len;
 }
 
-// Function to measure time difference between zero-cross of 2 signals in micro-seconds
-int time_diff (double signal_1, double signal_2)
-{
-    int time_us = 0;
+// // Function to measure time difference between zero-cross of 2 signals in micro-seconds
+// int time_diff (double signal_1, double signal_2)
+// {
+//     int time_us = 0;
     
-    int sig1_on = FALSE;
-    int sig2_on = FALSE;
+//     int sig1_on = FALSE;
+//     int sig2_on = FALSE;
     
-    if (signal_1 != 0.0)
-    	sig1_on = TRUE;
+//     if (signal_1 != 0.0)
+//     	sig1_on = TRUE;
     	
-    if (signal_2 != 0.0)
-    	sig2_on = TRUE;
+//     if (signal_2 != 0.0)
+//     	sig2_on = TRUE;
 
-    // Wait for one of the zero-cross signals to go high
-    // ONLY ONE of them should be high at a time
-    while ( (sig1_on) ^ (sig2_on) )
-    {
-        // do nothing
-    }
+//     // Wait for one of the zero-cross signals to go high
+//     // ONLY ONE of them should be high at a time
+//     while ( (sig1_on) ^ (sig2_on) )
+//     {
+//         // do nothing
+//     }
 
-    // Every microsecond the not yet triggered signal is 0,
-    // increment time_us by 1
-    if (sig1_on && !sig2_on)
-    {
-        while (signal_2 == 0) {
-            Timer3us(1);
-            time_us++;
-        }
-        return time_us;
-    }
+//     // Every microsecond the not yet triggered signal is 0,
+//     // increment time_us by 1
+//     if (sig1_on && !sig2_on)
+//     {
+//         while (signal_2 == 0) {
+//             Timer3us(1);
+//             time_us++;
+//         }
+//         return time_us;
+//     }
 
-    else if (!sig1_on && sig2_on)
-    {
-        while (signal_1 == 0) 
-        {
-            Timer3us(1);
-            time_us++;
-        }
-        return time_us;
-    }
+//     else if (!sig1_on && sig2_on)
+//     {
+//         while (signal_1 == 0) 
+//         {
+//             Timer3us(1);
+//             time_us++;
+//         }
+//         return time_us;
+//     }
 
-    else
-        return DEBUG_VALUE;  // shouldn't end up here, debug value
-}
+//     else
+//         return DEBUG_VALUE;  // shouldn't end up here, debug value
+// }
 
-// Finds the period of a function by measuring time between two zero-crosses
-int find_period_zero_cross (double signal)
-{
-    int zero_cross_time = 0;
+// // Finds the period of a function by measuring time between two zero-crosses
+// int find_period_zero_cross (double signal)
+// {
+//     int zero_cross_time = 0;
 
-    while (signal == 0)
-    {
-        //do nothing
-    }
+//     while (signal == 0)
+//     {
+//         //do nothing
+//     }
 
-    for (zero_cross_time = 0; signal != 0; zero_cross_time++)
-        Timer3us(1);
+//     for (zero_cross_time = 0; signal != 0; zero_cross_time++)
+//         Timer3us(1);
     
-    return (zero_cross_time * 2);  // 2 zero-crosses is half a wave
+//     return (zero_cross_time * 2);  // 2 zero-crosses is half a wave
     
-}
+// }
+
 
 void main (void)
 {
-	double ref_peak;
-    double ref_zero_cross;
-    double test_peak;
-    double test_zero_cross;
-
-    double ref_rms;
-    double test_rms;
-
-    double time_difference_ms;
-
-    double period_ms;
-    double frequency;
-    double phase_diff_deg;
-    double phase_diff_rad; 
-
-	int ref_isZero = FALSE;
-	int test_isZero = FALSE;
-
-	int isZero = 0;
-
-    // const double PI = 3.14159;
+	
     char unit_choice[2];
 
-	char rms_char[17];
-	char phase_char[17];
+	char * rms_char = malloc(17*sizeof(char));
+	char * phase_char = malloc(17* sizeof(char));
+
+	double ref_rms;
+	double test_rms;
+
+	unsigned long ref_half_period_us = 0;
+	unsigned long test_half_period_us = 0;
+
+	unsigned long ref_half_period;
+	unsigned long test_half_period;
+
+	double ref_freq;
+	double test_freq;
+
+	unsigned long time_difference_us = 0;
+
+	double phase_deg;
+	double phase_rad;
+	
+	int no_ref  = FALSE;
+	int no_test = FALSE;
+
+	int no_signal = 00;
+
 
 
     waitms(500); // Give PuTTy a chance to start before sending
@@ -381,6 +386,9 @@ void main (void)
     InitPinADC(1, 6); // Configure P1.6 as analog input
     InitPinADC(1, 7); // Configure P1.7 as analog input
     InitADC();
+			//1234567890123456
+	LCDprint("  Hello world!  ", 1, 1);
+	LCDprint("     Lab 5      ", 2, 1);
 
     printf ("\rPlease select units for phase:\n"
             "1: Radians\n"
@@ -391,102 +399,137 @@ void main (void)
 
 	while(1)
 	{
-	    // Read 14-bit value from the pins configured as analog inputs
-		ref_peak        = Volts_at_Pin(QFP32_MUX_P1_4);
-		ref_zero_cross  = Volts_at_Pin(QFP32_MUX_P1_5);
-		test_peak       = Volts_at_Pin(QFP32_MUX_P1_6);
-		test_zero_cross = Volts_at_Pin(QFP32_MUX_P1_7);
+	    if (P1_7 == 0)
+			no_ref = TRUE;
 
-		if(ref_peak == 0 || ref_zero_cross == 0)
-			ref_isZero = TRUE;
-		
-		if(test_peak == 0 || test_zero_cross == 0)
-			test_isZero = TRUE;
+		if (P1_6 == 0)
+			no_test = TRUE;
+
+		no_signal = (no_ref * 10) + no_test;
 
 		
-		// 'concatnate' so it's 00/01/10/11
-		isZero = (ref_isZero * 10) + test_isZero;
-
-		switch(isZero) 
+		switch (no_signal)
 		{
-			case 00: 
-				// explicit cast as double to avoid integer arithmetic
-				time_difference_ms = (double) (time_diff(ref_zero_cross, test_zero_cross)) / MILLI_TO_MICRO;
-
-				ref_rms  = ref_peak / SQRT_2;
-				test_rms = test_peak / SQRT_2;
-
-				period_ms = (double) (time_diff(ref_zero_cross, ref_zero_cross)) / MILLI_TO_MICRO;
-
-				phase_diff_deg = time_difference_ms * (PERIOD_IN_DEGRESS/period_ms);
-				phase_diff_rad = phase_diff_deg*PI/180;
-
-				frequency = 1 / (period_ms / BASE_TO_MILLI);
-		
-				switch(unit_choice[0])
+			case 00:
+				// Read 14-bit value from the pins configured as analog inputs
+			
+				while(P1_7 == 1);
+				while(P1_7 == 0);
+				while(P1_7 == 1) 
 				{
-					case '1': 
-						printf("\rV = %3f; %3f rad", test_rms, phase_diff_rad);
-						printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-							   // 1234567890123456
-						LCDprint("             rad", 2, 0);
-						                  // 1234567890123456
-										  // Vrms=xxx
-						sprintf(rms_char,   "     %3f", test_rms);
-										  // Phase=xxx
-						sprintf(phase_char, "      %3f", phase_diff_rad);
-						LCDprint(rms_char, 1, 0);
-						LCDprint(phase_char, 2, 0);
-						LCDprint("Vrms=", 1, 0);
-						LCDprint("Phase=", 2, 0);
-						break;
-					case '2':
-						printf("\rV = %3f; %3f deg", test_rms, phase_diff_deg);
-						printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-						       // 1234567890123456
-						LCDprint("             deg", 2, 0);
-						                  // 1234567890123456
-										  // Vrms=xxx
-						sprintf(rms_char,   "     %3f", test_rms);
-										  // Phase=xxx
-						sprintf(phase_char, "      %3f", phase_diff_deg);
-						LCDprint(rms_char, 1, 0);
-						LCDprint(phase_char, 2, 0);
-						LCDprint("Vrms=", 1, 0);
-						LCDprint("Phase=", 2, 0);
-						break;
-					default:
-						printf("\rDEFAULT CASE (unit_choice): ERROR :(\n");
+					Timer3us(1);
+					ref_half_period_us++;
 				}
-			break;
+				// ref_half_period *= (1000*1000);
 
-			case 10:
-				        //1234567890123456
-				LCDprint("  CONNECT TEST  ", 1, 1);
-				LCDprint("     SIGNAL     ", 2, 1);
-				printf("\rPlease connect the test signal and reset\n\n");
-				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				while(P1_7 == 1);
+				while(P1_7 == 0);
+				Timer3us( (ref_half_period_us / 2.0) );
+				ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2;
+
+				while(P1_6 == 1);
+				while(P1_6 == 0);
+				while(P1_6 == 1) 
+				{
+					Timer3us(1);
+					test_half_period_us++;
+				}
+				// test_half_period *= (1000*1000);
+
+				while(P1_6 == 1);
+				while(P1_6 == 0); 
+				Timer3us( (test_half_period_us / 2.0) );
+				test_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_5))/SQRT_2;
+
+				ref_freq = 1.0 / (ref_half_period * 2.0);
+				test_freq = 1.0 / (test_half_period * 2.0);
+
+				while(P1_7 == 1);
+				while(P1_7 == 0);
+				while(P1_7 == 1) 
+				{
+					Timer3us(1);
+					time_difference_us++;
+					
+					if(P1_6 == 1)
+						break;
+				}
+
+				phase_deg = time_difference_us * ( (double) PERIOD_IN_DEGRESS / (ref_half_period_us * 2.0) );
+				phase_rad = time_difference_us * ( (double) PERIOD_IN_RADIANS / (ref_half_period_us * 2.0) );
+
+				switch (unit_choice[0])
+				{
+				case '1':
+					        //1234567890123456
+					LCDprint("               V",1,0);
+					                //1234567890123456
+									//Vrms=
+					sprintf(rms_char,"     %.3f", test_rms);
+
+					LCDprint("             rad",2,0);
+					                  //Phase=
+					sprintf(phase_char,"      %.3f", phase_rad);
+
+					printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (radians) = %.3frad",
+							ref_rms, test_rms, phase_rad);
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
+
+				case '2':
+					       //1234567890123456
+					LCDprint("               V",1,0);
+					                //1234567890123456
+									//Vrms=
+					sprintf(rms_char,"     %.3f", test_rms);
+
+					LCDprint("             deg",2,0);
+					                  //Phase=
+					sprintf(phase_char,"      %.3f", phase_deg);
+					printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (degress) = %.3fdeg",
+							ref_rms, test_rms, phase_deg);
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
+				
+				default:
+					LCDprint("ERROR(units)",1,1);
+					printf("\rDEFAULT CASE (units): ERROR");
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
+				}
 				break;
 			
 			case 01:
 				        //1234567890123456
-				LCDprint("  CONNECT REF  ", 1, 1);
-				LCDprint("     SIGNAL    ", 2, 1);
-				printf("\rPlease connect the reference signal and reset\n\n");
+				LCDprint("  CONNECT TEST  ", 1, 1);
+				LCDprint("     SIGNAL     ", 2, 1);
+				printf("\rNo TEST signal detected!");
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
+			
+			case 10:
+				        //1234567890123456
+				LCDprint("  CONNECT REF   ", 1, 1);
+				LCDprint("     SIGNAL     ", 2, 1);
+				printf("\rNo REFERENCE signal detected!");
 				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
 				break;
 
 			case 11:
-			            //1234567890123456
+				        //1234567890123456
 				LCDprint("   NO SIGNALS   ", 1, 1);
 				LCDprint("    DETECTED    ", 2, 1);
-				printf("\rPlease connect test and reference signals and reset\n\n");
+				printf("\rNo signals detected!");
 				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
 				break;
-
-			default:
-				printf("DEFAULT CASE(signal detection): ERROR :(");
+		
+		default:
+			LCDprint("ERROR: SIG",1,1);
+			printf("\rDEFAULT CASE (signals): ERROR");
+			printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+			break;
 		}
+
         waitms(500);
 	 }  
 }	
