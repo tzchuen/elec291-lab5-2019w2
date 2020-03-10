@@ -400,138 +400,138 @@ void main (void)
 
 	while(1)
 	{
-	    printf("\r%f", Volts_at_Pin(QFP32_MUX_P1_7));
-		// if (P1_7 == 0)
-		// 	no_ref = TRUE;
-
-		// if (P1_6 == 0)
-		// 	no_test = TRUE;
-
-		// no_signal = (no_ref * 10) + no_test;
-
-		// printf("\r%d\n", no_signal);
+	    // Use peak detector just to check if there's a signal
+		if(P1_8 == 0)
+			no_ref = TRUE;
 		
-		// switch (no_signal)
-		// {
-		// 	case 00:
-		// 		// Read 14-bit value from the pins configured as analog inputs
+		if(P1_9 == 0)
+			no_test = TRUE;
+
+		no_signal = (no_ref * 10) + no_test;
+
+		// ("\r%d\n", no_signal); // debug
+		
+		switch (no_signal)
+		{
+			case 00:
+				// Read 14-bit value from the pins configured as analog inputs
 			
-		// 		while(P1_7 != 0);
-		// 		while(P1_7 == 0);
-		// 		while(P1_7 != 0) 
-		// 		{
-		// 			Timer3us(1);
-		// 			ref_half_period_us++;
-		// 		}
-		// 		// ref_half_period *= (1000*1000);
+				while(P1_7 != 0);
+				while(P1_7 == 0);
+				while(P1_7 != 0) 
+				{
+					Timer3us(1);
+					ref_half_period_us++;
+				}
+				// ref_half_period *= (1000*1000);
 
-		// 		while(P1_7 != 0);
-		// 		while(P1_7 == 0);
-		// 		Timer3us( (ref_half_period_us / 2.0) );
-		// 		ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2;
+				while(P1_7 != 0);
+				while(P1_7 == 0);
+				Timer3us( (ref_half_period_us / 2.0) );
+				ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2;
 
-		// 		while(P1_6 != 0);
-		// 		while(P1_6 == 0);
-		// 		while(P1_6 != 0) 
-		// 		{
-		// 			Timer3us(1);
-		// 			test_half_period_us++;
-		// 		}
-		// 		// test_half_period *= (1000*1000);
+				while(P1_6 != 0);
+				while(P1_6 == 0);
+				while(P1_6 != 0) 
+				{
+					Timer3us(1);
+					test_half_period_us++;
+				}
+				// test_half_period *= (1000*1000);
 
-		// 		while(P1_6 != 0);
-		// 		while(P1_6 == 0); 
-		// 		Timer3us( (test_half_period_us / 2.0) );
-		// 		test_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_5))/SQRT_2;
+				while(P1_6 != 0);
+				while(P1_6 == 0); 
+				Timer3us( (test_half_period_us / 2.0) );
+				test_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_5))/SQRT_2;
 
-		// 		ref_freq = 1.0 / (ref_half_period * 2.0);
-		// 		test_freq = 1.0 / (test_half_period * 2.0);
+				ref_freq = 1.0 / (ref_half_period * 2.0);
+				test_freq = 1.0 / (test_half_period * 2.0);
 
-		// 		while(P1_7 != 0);
-		// 		while(P1_7 == 0);
-		// 		while(P1_7 != 0) 
-		// 		{
-		// 			Timer3us(1);
-		// 			time_difference_us++;
+				while(P1_7 != 0);
+				while(P1_7 == 0);
+				while(P1_7 != 0) 
+				{
+					Timer3us(1);
+					time_difference_us++;
 					
-		// 			if(P1_6 != 0)
-		// 				break;
-		// 		}
+					if(P1_6 != 0)
+						break;
+				}
 
-		// 		phase_deg = time_difference_us * ( (double) PERIOD_IN_DEGRESS / (ref_half_period_us * 2.0) );
-		// 		phase_rad = time_difference_us * ( (double) PERIOD_IN_RADIANS / (ref_half_period_us * 2.0) );
+				phase_deg = time_difference_us * ( (double) PERIOD_IN_DEGRESS / (ref_half_period_us * 2.0) );
+				phase_rad = time_difference_us * ( (double) PERIOD_IN_RADIANS / (ref_half_period_us * 2.0) );
 
-		// 		switch (unit_choice[0])
-		// 		{
-		// 		case '1':
-		// 			        //1234567890123456
-		// 			LCDprint("               V",1,0);
-		// 			                //1234567890123456
-		// 							//Vrms=
-		// 			sprintf(rms_char,"     %.3f", test_rms);
+				switch (unit_choice[0])
+				{
+				case '1':
+					        //1234567890123456
+					LCDprint("               V",1,0);
+					                //1234567890123456
+									//Vrms=
+					sprintf(rms_char,"     %.3f", test_rms);
 
-		// 			LCDprint("             rad",2,0);
-		// 			                  //Phase=
-		// 			sprintf(phase_char,"      %.3f", phase_rad);
+					LCDprint("             rad",2,0);
+					                  //Phase=
+					sprintf(phase_char,"      %.3f", phase_rad);
 
-		// 			printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (radians) = %.3frad",
-		// 					ref_rms, test_rms, phase_rad);
-		// 			printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 			break;
+					printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (radians) = %.3frad",
+							ref_rms, test_rms, phase_rad);
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
 
-		// 		case '2':
-		// 			       //1234567890123456
-		// 			LCDprint("               V",1,0);
-		// 			                //1234567890123456
-		// 							//Vrms=
-		// 			sprintf(rms_char,"     %.3f", test_rms);
+				case '2':
+					       //1234567890123456
+					LCDprint("               V",1,0);
+					                //1234567890123456
+									//Vrms=
+					sprintf(rms_char,"     %.3f", test_rms);
 
-		// 			LCDprint("             deg",2,0);
-		// 			                  //Phase=
-		// 			sprintf(phase_char,"      %.3f", phase_deg);
-		// 			printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (degress) = %.3fdeg",
-		// 					ref_rms, test_rms, ref_freq, phase_deg);
-		// 			printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 			break;
+					LCDprint("             deg",2,0);
+					                  //Phase=
+					sprintf(phase_char,"      %.3f", phase_deg);
+					printf("\rVrms (REF) = %.3fV, Vrms (TEST) = %.3fV, Frequency = %.3fHz, Phase (degress) = %.3fdeg",
+							ref_rms, test_rms, ref_freq, phase_deg);
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
 				
-		// 		default:
-		// 			LCDprint("ERROR(units)",1,1);
-		// 			printf("\rDEFAULT CASE (units): ERROR");
-		// 			printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 			break;
-		// 		}
-		// 		break;
+				default:
+					LCDprint("ERROR(units)",1,1);
+					printf("\rDEFAULT CASE (units): ERROR");
+					printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+					break;
+				}
+				break;
 			
-		// 	case 01:
-		// 		        //1234567890123456
-		// 		LCDprint("  CONNECT TEST  ", 1, 1);
-		// 		LCDprint("     SIGNAL     ", 2, 1);
-		// 		printf("\rNo TEST signal detected! Vrms (REF) = %.3fV, Frequency = %.3fHz", ref_rms, ref_freq);
-		// 		printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 		break;
+			case 01:
+				        //1234567890123456
+				LCDprint("  CONNECT TEST  ", 1, 1);
+				LCDprint("     SIGNAL     ", 2, 1);
+				printf("\rNo TEST signal detected! Vrms (REF) = %.3fV, Frequency = %.3fHz", ref_rms, ref_freq);
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
 			
-		// 	case 10:
-		// 		        //1234567890123456
-		// 		LCDprint("  CONNECT REF   ", 1, 1);
-		// 		LCDprint("     SIGNAL     ", 2, 1);
-		// 		printf("\rNo REFERENCE signal detected! Vrms (TEST) = %.3fV, Frequency = %.3fHz", test_rms, test_freq);
-		// 		printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 		break;
+			case 10:
+				        //1234567890123456
+				LCDprint("  CONNECT REF   ", 1, 1);
+				LCDprint("     SIGNAL     ", 2, 1);
+				printf("\rNo REFERENCE signal detected! Vrms (TEST) = %.3fV, Frequency = %.3fHz", test_rms, test_freq);
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
 
-		// 	case 11:
-		// 		        //1234567890123456
-		// 		LCDprint("   NO SIGNALS   ", 1, 1);
-		// 		LCDprint("    DETECTED    ", 2, 1);
-		// 		printf("\rNo signals detected!");
-		// 		printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 		break;
+			case 11:
+				        //1234567890123456
+				LCDprint("   NO SIGNALS   ", 1, 1);
+				LCDprint("    DETECTED    ", 2, 1);
+				printf("\rNo signals detected!");
+				printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+				break;
 		
-		// default:
-		// 	LCDprint("ERROR: SIG",1,1);
-		// 	printf("\rDEFAULT CASE (signals): ERROR");
-		// 	printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
-		// 	break;
-		// }
+		default:
+			LCDprint("ERROR: SIG",1,1);
+			printf("\rDEFAULT CASE (signals): ERROR");
+			printf("\x1b[0K"); // ANSI: Clear from cursor to end of line.
+			break;
+		}
 
         waitms(5);
 	 }  
