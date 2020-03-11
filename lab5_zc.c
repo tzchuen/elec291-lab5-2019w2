@@ -1,5 +1,6 @@
 
 
+
 /* My implementation
  * I haven't added any PuTTY or LCD stuff yet, just an outline to see if it makes sense to you
  */
@@ -273,70 +274,6 @@ int getsn (char * buff, int len)
 	return len;
 }
 
-// // Function to measure time difference between zero-cross of 2 signals in micro-seconds
-// int time_diff (double signal_1, double signal_2)
-// {
-//     int time_us = 0;
-    
-//     int sig1_on = FALSE;
-//     int sig2_on = FALSE;
-    
-//     if (signal_1 != 0.0)
-//     	sig1_on = TRUE;
-    	
-//     if (signal_2 != 0.0)
-//     	sig2_on = TRUE;
-
-//     // Wait for one of the zero-cross signals to go high
-//     // ONLY ONE of them should be high at a time
-//     while ( (sig1_on) ^ (sig2_on) )
-//     {
-//         // do nothing
-//     }
-
-//     // Every microsecond the not yet triggered signal is 0,
-//     // increment time_us by 1
-//     if (sig1_on && !sig2_on)
-//     {
-//         while (signal_2 == 0) {
-//             Timer3us(1);
-//             time_us++;
-//         }
-//         return time_us;
-//     }
-
-//     else if (!sig1_on && sig2_on)
-//     {
-//         while (signal_1 == 0) 
-//         {
-//             Timer3us(1);
-//             time_us++;
-//         }
-//         return time_us;
-//     }
-
-//     else
-//         return DEBUG_VALUE;  // shouldn't end up here, debug value
-// }
-
-// // Finds the period of a function by measuring time between two zero-crosses
-// int find_period_zero_cross (double signal)
-// {
-//     int zero_cross_time = 0;
-
-//     while (signal == 0)
-//     {
-//         //do nothing
-//     }
-
-//     for (zero_cross_time = 0; signal != 0; zero_cross_time++)
-//         Timer3us(1);
-    
-//     return (zero_cross_time * 2);  // 2 zero-crosses is half a wave
-    
-// }
-
-
 void main (void)
 {
 	
@@ -362,11 +299,12 @@ void main (void)
 	double phase_deg;
 	double phase_rad;
 	
-	int no_ref  = FALSE;
-	int no_test = FALSE;
+	int no_ref  = TRUE;
+	int no_test = TRUE;
 
-	int no_signal = 00;
+	int no_signal = 11;
 
+	unsigned long Period;
 
 
     waitms(500); // Give PuTTy a chance to start before sending
@@ -399,17 +337,41 @@ void main (void)
 
 
 	while(1)
-	{
-	    // Use peak detector just to check if there's a signal
-		if(P1_8 == 0)
-			no_ref = TRUE;
+	{	
+		// printf("\rV = %f \n",Volts_at_Pin(QFP32_MUX_P1_2));
+		// // Measure half period at pin P1.0 using timer 0
+		// TR0=0; // Stop timer 0
+		// printf("test 1 \n");
+		// TMOD=0B_0000_0001; // Set timer 0 as 16- // Set timer 0 as 16-bit timer bit timer
+		// printf("test 2 \n");
+		// TH0=0; TL0=0; // Reset the timer
+		// printf("test 3 \n");
+		// while (P1_7==1);// Wait for the signal to be zero
+		// while (P1_7==0); // Wait for the signal to be one
+		// TR0=1; // Start timing
+		// while (P1_7==1); // Wait for the signal to be zero
+		// TR0=0; // Stop timer 0
+		// // [TH0,TL0] is half the period in multiples of 12/CLK, so:
+		// Period=(TH0*0x100+TL0)*2; // Assume Period is unsigned int 
 		
-		if(P1_9 == 0)
-			no_test = TRUE;
+		// printf("\rT=%lu", Period);
+		
+	    //Use peak detector just to check if there's a signal
+		if(P1_2 != 0.0)
+			no_ref = FALSE;
+		
+		//printf("\rno_ref %d", no_ref);
+
+		if(P1_3 != 0.0)
+			no_test = FALSE;
+		
+		// printf("\rgot to P1_3");
 
 		no_signal = (no_ref * 10) + no_test;
+		
+		//printf("\rgot to no_signal\n");
 
-		// ("\r%d\n", no_signal); // debug
+		printf("\r%d\n", no_signal); // debug
 		
 		switch (no_signal)
 		{
@@ -428,7 +390,7 @@ void main (void)
 				while(P1_7 != 0);
 				while(P1_7 == 0);
 				Timer3us( (ref_half_period_us / 2.0) );
-				ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2;
+				ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2; 
 
 				while(P1_6 != 0);
 				while(P1_6 == 0);
@@ -503,6 +465,24 @@ void main (void)
 				break;
 			
 			case 01:
+				//printf("%f",Volts_at_Pin(QFP32_MUX_P1_7));
+				while(P1_7 != 0);
+				while(P1_7 == 0);
+				//printf("Passed ==0\n");
+				while(P1_7 != 0) 
+				{
+					Timer3us(1);
+					ref_half_period_us++;
+				}
+				// ref_half_period *= (1000*1000);
+				printf("Passed timer\n");
+
+				while(Volts_at_Pin(QFP32_MUX_P1_7) != 0);
+				while(Volts_at_Pin(QFP32_MUX_P1_7) == 0);
+				Timer3us( (ref_half_period_us / 2.0) );
+				ref_rms = ( (double) Volts_at_Pin(QFP32_MUX_P1_4) )/SQRT_2; 
+				//	ref_freq = 1.0 / (ref_half_period * 2.0);
+				
 				        //1234567890123456
 				LCDprint("  CONNECT TEST  ", 1, 1);
 				LCDprint("     SIGNAL     ", 2, 1);
@@ -533,6 +513,6 @@ void main (void)
 			break;
 		}
 
-        waitms(5);
+        waitms(500);
 	 }  
 }	
