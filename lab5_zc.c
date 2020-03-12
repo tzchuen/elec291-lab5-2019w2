@@ -311,6 +311,10 @@ void main (void)
 	char * rms_char = malloc(17*sizeof(char));
 	char * phase_char = malloc(17* sizeof(char));
 
+	        //1234567890123456
+	LCDprint("   Welcome to   ", 1, 1);
+	LCDprint("     Lab 6!     ", 2, 1);
+
 	waitms(500); //PuTTY startup
 	printf(ANSI_CLEAR_SCREEN);
 
@@ -345,7 +349,7 @@ void main (void)
 		}
 		else
 			error_flag = FALSE;
-			
+
 	} while (error_flag == TRUE);
 	
 
@@ -355,10 +359,7 @@ void main (void)
 
 	LCD_4BIT(); // initialize LCD
 
-	        //1234567890123456
-	LCDprint("   Welcome to   ", 1, 1);
-	LCDprint("     Lab 6!     ", 2, 1);
-
+	
 	// initialize timer 0
 	TMOD&=0b_1111_0000; // Set the bits of Timer/Counter 0 to zero
 	TMOD|=0b_0000_0001; // Timer/Counter 0 used as a 16-bit timer
@@ -366,7 +367,10 @@ void main (void)
 
 
 	while (1) {
-
+		
+		LCDprint("               ", 1,1);
+		LCDprint("               ", 2,1);
+		
 		half_period = 0.0;
 		period = 0.0;
 		peak_time = 0.0;
