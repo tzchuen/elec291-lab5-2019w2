@@ -327,22 +327,25 @@ void main (void)
 
 	getsn(unit_choice, sizeof(unit_choice));
 
+	printf ("This program will measure voltage, period, and time difference n times and find their average values.\n"
+			"Please enter a value for n\n"
+			"n must be between 1 and %d\n"
+			"n = \n", AVG_UPPER_BOUND);
+
 	do
 	{
-		printf ("This program will measure voltage, period, and time difference n times and find their average values.\n"
-		"Please enter a value for n\n"
-		"n must be between 1 and %d\n"
-		"n = \n", AVG_UPPER_BOUND);
-	
 		getsn(iteration_count_arr, sizeof(iteration_count_arr));
 		sscanf(iteration_count_arr, "%d", &iteration_count);
 
 		if (iteration_count < 1 || iteration_count > AVG_UPPER_BOUND) 
 		{
 			printf("ERROR: Invalid input!\n"
-				   "n must be between 1 and %d", AVG_UPPER_BOUND);
+				   "n must be between 1 and %d\n", AVG_UPPER_BOUND);
 			error_flag == TRUE;
 		}
+		else
+			error_flag = FALSE;
+			
 	} while (error_flag == TRUE);
 	
 
