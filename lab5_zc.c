@@ -22,11 +22,23 @@
 #define TRUE 1
 #define FALSE 0
 
-#define P1_7_REF  QFP32_MUX_P1_7
-#define P1_6_TEST QFP32_MUX_P1_6
-
 #define CHARS_PER_LINE 16
-#define ADC_ZERO_VAL 1073676402LU
+#define ANSI_CLEAR_SCREEN "\x1b[2J"
+#define ANSI_CURSOR_END_LINE "\x1b[0K"
+
+#define AVG_UPPER_BOUND 10
+#define TIMER_0_RESULT TH0*256.0+TL0
+
+#define P1_6_TEST QFP32_MUX_P1_6
+#define P1_7_REF  QFP32_MUX_P1_7
+#define PI 3.14159265359
+#define SQRT_2 1.4142135
+
+#define NO_SIGNALS 00
+#define NO_REF	   01
+#define NO_TEST    10
+#define NORMAL     11
+
 
 
 char _c51_external_startup (void)
@@ -269,63 +281,271 @@ int getsn (char * buff, int len)
 	return len;
 }
 
-// unsigned int Get_ADC (void)
-// {
-// 	ADBUSY = TRUE;
-// 	while (ADBUSY); // Wait for conversion to complete
-// 	return (ADC0);
-// }
 
 void main (void)
 {
-	double half_period;
-	unsigned long V1;
+	double half_period = 0.0;
+	double period = 0.0;
+
+	double ref_rms = 0.0;
+	double ref_peak = 0.0;
+
+	double test_rms = 0.0;
+	double test_peak = 0.0;
+
+	double time_diff = 0.0;
+	double phase_diff = 0.0;
+
+	double peak_time;
+	
+	int error_flag = FALSE;
+	int iteration_count = 1;
+	int average_count = 0;
+	int signal = NORMAL;
+
+	char signal_detect_arr[2] = "11";
+	char unit_choice[2];
+	char iteration_count_arr[3];
+	char units[] = "deg";
+
+	char * rms_char = malloc(17*sizeof(char));
+	char * phase_char = malloc(17* sizeof(char));
+
+	waitms(500); //PuTTY startup
+	printf(ANSI_CLEAR_SCREEN);
+
+	printf ("Lab 5: AC Voltmeter\n"
+	        "Authors: Ryan Acapulco, Zhi Chuen Tan\n"
+			"Lab Section: L2B (M/W 12-3pm)\n"
+			"Term: 2019W2\n\n"
+	        "Compiled: %s, %s\n\n",
+	        __DATE__, __TIME__);
+
+	printf ("Please select units for phase: \n"
+			"1 - Degrees \n"
+			"2 - Radians \n");
+
+	getsn(unit_choice, sizeof(unit_choice));
+
+	do
+	{
+		printf ("This program will measure voltage, period, and time difference n times and find their average values.\n"
+		"Please enter a value for n\n"
+		"n must be between 1 and %d\n"
+		"n = \n", AVG_UPPER_BOUND);
+	
+		getsn(iteration_count_arr, sizeof(iteration_count_arr));
+		sscanf(iteration_count_arr, "%d", &iteration_count);
+
+		if (iteration_count < 1 || iteration_count > AVG_UPPER_BOUND) 
+		{
+			printf("ERROR: Invalid input!\n"
+				   "n must be between 1 and %d", AVG_UPPER_BOUND);
+			error_flag == TRUE;
+		}
+	} while (error_flag == TRUE);
+	
 
 	InitPinADC(1, 6);
 	InitPinADC(1, 7);
 	InitADC();
 
+	LCD_4BIT(); // initialize LCD
+
+	        //1234567890123456
+	LCDprint("   Welcome to   ", 1, 1);
+	LCDprint("     Lab 6!     ", 2, 1);
+
+	// initialize timer 0
+	TMOD&=0b_1111_0000; // Set the bits of Timer/Counter 0 to zero
+	TMOD|=0b_0000_0001; // Timer/Counter 0 used as a 16-bit timer
+	TR0=0; // Stop Timer/Counter 0
+
+
 	while (1) {
 
-		TR0=0; // Stop timer 0
-		///TMOD = 0B_0000_0001; // Set timer 0 as 16- // Set timer 0 as 16-bit timer bit timer
-		TH0=0; TL0=0; // Reset the timer
-	
-		while (ADC_at_Pin(P1_7_REF) != ADC_ZERO_VAL) {}// Wait for the signal to be zero
+		half_period = 0.0;
+		period = 0.0;
+		peak_time = 0.0;
+		ref_peak = 0.0;
+		test_peak = 0.0;
+		time_diff = 0.0;
+
+		// Checks if there are any signals;
+
+		if(Volts_at_Pin(P1_7_REF) == 0)
+			waitms(100); // if no signal detected on P1_7, wait 100ms and check again
 		
-		// printf("\rt1=%lu", ADC_at_Pin(P1_7_REF));
-
-		while (ADC_at_Pin(P1_7_REF) == ADC_ZERO_VAL) {} // Wait for the signal to be positive
-		TR0=1; // Start the timer 0
-		//printf("\rt2=%lu", ADC_at_Pin(P1_7_REF));
+		if(Volts_at_Pin(P1_7_REF) == 0)
+			signal_detect[1] = '0';	// if no signal detected at this point, then REF isnt connected
 		
-		while (ADC_at_Pin(P1_7_REF) != ADC_ZERO_VAL) {} // Wait for the signal to be zero again
-		TR0=0; // Stop timer 0
-		//printf("\rt3=%lu", ADC_at_Pin(P1_7_REF));
+		if(Volts_at_Pin(P1_6_TEST) == 0)
+			waitms(100);
 		
-		half_period=TH0*256.0+TL0; // The 16-bit number [TH0-TL0]
+		if(Volts_at_Pin(P1_6_TEST) == 0)
+			signal_detect[0] = '0';
 
-		printf("\x1b[2J"); // Clear screen using ANSI escape sequence.
-		//printf("\r%f", half_period);
+		// writes data as int
+		sscanf(signal_detect_arr, "%d", &signal);
 
-		waitms(300);
+		switch (signal)
+		{
+			case NORMAL:
+				for (average_count = 0; average_count < iteration_count; average_count++)
+				{
+					Volts_at_Pin(P1_7_REF); // dump overflow value
+					TL0=0;
+					TH0=0;
+					while(Volts_at_Pin(P1_7_REF)!=0);
+					// Wait for the signal to be zero
+					while(Volts_at_Pin(P1_7_REF)==0);
+					// Wait for the signal to be positive
+					TR0=1;
+					while(Volts_at_Pin(P1_7_REF)!=0);
+					TR0=0;
+					// Stop timer 0
 
-		// // Time from the beginning of the sine wave to its peak
-		// // overflow_count=65536-(half_period/2);	
+					half_period += TIMER_0_RESULT;
+				}
 
-		// // AMX0P	= P1_6_TEST;
-		// // ADBUSY	= TRUE;
-		// // while (ADBUSY); // Wait for conversion to complete
-		// // // Reset the timer
-		// // TL0=0;
-		// // TH0=0;
-		// // while (Get_ADC()!=0); // Wait for the signal to be zero
-		// // while (Get_ADC()==0); // Wait for the signal to be positive
-		// // TR0=1; // Start the timer 0
-		// // while (Get_ADC()!=0); // Wait for the signal to be zero again
-		// // TR0=0; // Stop timer 0
-		// // half_period=TH0*256.0+TL0; // The 16-bit number [TH0-TL0]
-		// // // Time from the beginning of the sine wave to its peak
-		// // overflow_count=65536-(half_period/2);	
+				half_period /= iteration_count;
+				period = half_period * 2 * (12/SYSCLK);
+				peak_time = half_period / 4;
+
+
+				// REF: P1_7
+				for (average_count = 0; average_count < iteration_count; average_count++)
+				{
+					TL=0;
+					TH=0;
+					while(Volts_at_Pin(P1_7_REF) != 0);
+					// Wait for the signal to be zero
+					while(Volts_at_Pin(P1_7_REF) == 0);
+					// Wait for the signal to be positive
+					TR0=1;
+					while(TIMER_0_RESULT <= peak_time);
+					TR0=0;
+
+					ref_peak += Volts_at_Pin(P1_7_REF);
+				}
+
+				ref_peak /= iteration_count;
+				ref_rms = ref_peak / SQRT_2;
+
+				// TEST: P1_6
+				for (average_count = 0; average_count < iteration_count; average_count++)
+				{
+					TL=0;
+					TH=0;
+					while(Volts_at_Pin(P1_6_TEST) != 0);
+					// Wait for the signal to be zero
+					while(Volts_at_Pin(P1_6_TEST) == 0);
+					// Wait for the signal to be positive
+					TR0=1;
+					while(TIMER_0_RESULT <= peak_time);
+					TR0=0;
+
+					test_peak += Volts_at_Pin(P1_6_TEST);
+				}
+
+				test_peak /= iteration_count;
+
+				// Phase difference
+				for (average_count = 0; average_count < iteration_count; average_count++)
+				{
+					TL=0;
+					TH=0;
+					while(Volts_at_Pin(P1_6_TEST) != 0);
+					
+					while(Volts_at_Pin(P1_6_TEST) == 0);
+					TR0=1;
+
+					while(Volts_at_Pin(P1_7_REF) != 0);
+					TR0=0;
+
+					time_diff += TIMER_0_RESULT * (12/SYSCLK);
+				}
+
+				time_diff /= iteration_count;
+
+				switch (unit_choice[0])
+				{
+					case '1':
+						phase_diff = time_diff * (360 / period);
+						units = "deg";
+								//1234567890123456
+						LCDprint("             deg", 2, 0);
+						break;
+					
+					case '2':
+						phase_diff = time_diff * ((2*PI)/ period);
+						units = "rad";
+						//1234567890123456
+						LCDprint("             deg", 2, 0);
+						break;
+					
+					default:
+						printf("\rERROR: UNIT DEFAULT CASE");
+								//1234567890123456
+						LCDprint("  DEFAULT ERROR ", 1, 1);
+						LCDprint("      UNITS     ", 2, 1);
+						break;
+				}
+
+				printf("Vrms(REF) = %.4f V, Vrms(TEST) = %.4f V, Period = %.4fs, Phase difference = %.4f%s"
+						ref_rms, test_rms, period, phase_diff, units);
+				printf(ANSI_CURSOR_END_LINE); // ANSI: Clear from cursor to end of line.
+								//1234567890123456
+				sprintf(rms_char, "     %.3f", test_rms);
+						//1234567890123456
+				LCDprint("               V", 1, 0);
+				LCDprint(rms_char, 1, 0);	
+				LCDprint("Vrms:           ", 1, 0);
+
+								//Phase:
+				sprintf(phase_char, "      %.3f", phase_diff);
+
+						//1234567890123456
+				LCDprint(rms_char, 1, 0);	
+				LCDprint("Phase:           ", 2, 0);
+				break;
+			
+			case NO_REF:
+				printf("\rNo reference signal detected!");
+				printf(ANSI_CURSOR_END_LINE);
+
+						//1234567890123456
+				LCDprint("    CONNECT    ", 1, 1);
+				LCDprint("   REFERENCE   ", 2, 1);	
+				break;
+			
+			case NO_TEST:
+				printf("\rNo test signal detected!");
+				printf(ANSI_CURSOR_END_LINE);
+
+						//1234567890123456
+				LCDprint("    CONNECT    ", 1, 1);
+				LCDprint("      TEST     ", 2, 1);	
+				break;
+
+			case NO_SIGNALS:
+				printf("\rNo signals detected!");
+				printf(ANSI_CURSOR_END_LINE);
+
+						//1234567890123456
+				LCDprint("   NO SIGNALS   ", 1, 1);
+				LCDprint("    DETECTED    ", 2, 1);	
+				break;
+			
+			default:
+				printf("\rERROR: SIGNAL DEFAULT CASE");
+						//1234567890123456
+				LCDprint("  DEFAULT ERROR ", 1, 1);
+				LCDprint("      SIGNAL    ", 2, 1);	
+				break;
+		}
+
+		waitms(500);
+		waitms(500);	
 	}
 }	
